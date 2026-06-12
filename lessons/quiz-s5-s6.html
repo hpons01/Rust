@@ -1,0 +1,670 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>S5 & S6 — Ownership, References & Borrowing</title>
+  <style>
+    :root {
+      --bg: #0f1117;
+      --surface: #1a1d2e;
+      --surface2: #222538;
+      --border: #2e3250;
+      --accent: #e05f3f;
+      --accent2: #5f8ee0;
+      --green: #4caf7d;
+      --red: #e05f5f;
+      --text: #e8eaf0;
+      --muted: #7b82a8;
+      --code-bg: #12141f;
+      --code-border: #2a2d45;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      font-family: 'Segoe UI', system-ui, sans-serif;
+      background: var(--bg);
+      color: var(--text);
+      min-height: 100vh;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 820px; margin: 0 auto; }
+
+    /* Header */
+    header { text-align: center; margin-bottom: 3rem; }
+    header .crab { font-size: 3rem; margin-bottom: 0.5rem; }
+    header h1 { font-size: 1.8rem; font-weight: 700; letter-spacing: -0.5px; }
+    header p { color: var(--muted); margin-top: 0.5rem; font-size: 0.95rem; }
+    .badge {
+      display: inline-block;
+      padding: 0.2rem 0.7rem;
+      border-radius: 999px;
+      font-size: 0.75rem;
+      font-weight: 600;
+      letter-spacing: 0.5px;
+      margin: 0.2rem;
+    }
+    .badge-s5 { background: rgba(224,95,63,0.15); color: var(--accent); border: 1px solid rgba(224,95,63,0.3); }
+    .badge-s6 { background: rgba(95,142,224,0.15); color: var(--accent2); border: 1px solid rgba(95,142,224,0.3); }
+
+    /* Summary */
+    details.summary-block {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      margin-bottom: 2.5rem;
+      overflow: hidden;
+    }
+    details.summary-block summary {
+      padding: 1rem 1.25rem;
+      cursor: pointer;
+      font-weight: 600;
+      font-size: 1rem;
+      list-style: none;
+      display: flex;
+      align-items: center;
+      gap: 0.5rem;
+      user-select: none;
+    }
+    details.summary-block summary::-webkit-details-marker { display: none; }
+    details.summary-block summary::after {
+      content: '▸';
+      margin-left: auto;
+      color: var(--muted);
+      transition: transform 0.2s;
+    }
+    details.summary-block[open] summary::after { transform: rotate(90deg); }
+    .summary-content { padding: 0 1.25rem 1.25rem; }
+    .summary-content h3 {
+      font-size: 0.85rem;
+      text-transform: uppercase;
+      letter-spacing: 1px;
+      color: var(--muted);
+      margin: 1.2rem 0 0.6rem;
+    }
+    .summary-content ul { padding-left: 1.2rem; }
+    .summary-content li { margin-bottom: 0.35rem; font-size: 0.93rem; line-height: 1.5; }
+    .rule-box {
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-left: 3px solid var(--accent);
+      border-radius: 8px;
+      padding: 0.8rem 1rem;
+      font-size: 0.88rem;
+      margin: 0.5rem 0;
+      line-height: 1.6;
+    }
+    .rule-box.blue { border-left-color: var(--accent2); }
+    code {
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.85em;
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 4px;
+      padding: 0.1em 0.35em;
+      color: #c9d1f0;
+    }
+    pre {
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: 0.84rem;
+      background: var(--code-bg);
+      border: 1px solid var(--code-border);
+      border-radius: 8px;
+      padding: 1rem;
+      overflow-x: auto;
+      line-height: 1.6;
+      margin: 0.75rem 0;
+      color: #c9d1f0;
+    }
+    .kw { color: #c792ea; }
+    .ty { color: #82aaff; }
+    .str { color: #c3e88d; }
+    .cm { color: #546e7a; font-style: italic; }
+    .fn-name { color: #82aaff; }
+    .num { color: #f78c6c; }
+    .invalid { color: var(--red); text-decoration: line-through; }
+
+    /* Section divider */
+    .section-label {
+      display: flex;
+      align-items: center;
+      gap: 0.75rem;
+      margin: 2rem 0 1.25rem;
+    }
+    .section-label .line { flex: 1; height: 1px; background: var(--border); }
+    .section-label span {
+      font-size: 0.8rem;
+      font-weight: 700;
+      letter-spacing: 1.5px;
+      text-transform: uppercase;
+      color: var(--muted);
+    }
+
+    /* Quiz cards */
+    .quiz-card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 1.4rem;
+      margin-bottom: 1.25rem;
+      transition: border-color 0.2s;
+    }
+    .quiz-card.answered-correct { border-color: var(--green); }
+    .quiz-card.answered-wrong { border-color: var(--red); }
+
+    .q-header {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.75rem;
+      margin-bottom: 1rem;
+    }
+    .q-num {
+      min-width: 28px;
+      height: 28px;
+      border-radius: 50%;
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      font-size: 0.78rem;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: var(--muted);
+      flex-shrink: 0;
+      margin-top: 1px;
+    }
+    .q-text { font-size: 0.97rem; line-height: 1.55; font-weight: 500; }
+
+    pre.q-code {
+      font-size: 0.82rem;
+      margin: 0.75rem 0 1rem;
+      border-left: 3px solid var(--border);
+    }
+
+    .options { display: flex; flex-direction: column; gap: 0.5rem; }
+    .option {
+      display: flex;
+      align-items: flex-start;
+      gap: 0.65rem;
+      padding: 0.65rem 0.85rem;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+      background: var(--surface2);
+      cursor: pointer;
+      transition: border-color 0.15s, background 0.15s;
+      font-size: 0.9rem;
+      line-height: 1.45;
+    }
+    .option:hover:not(.disabled) { border-color: var(--accent2); background: rgba(95,142,224,0.07); }
+    .option .opt-label {
+      min-width: 20px;
+      font-weight: 700;
+      color: var(--muted);
+      font-size: 0.8rem;
+      margin-top: 1px;
+    }
+    .option.correct { border-color: var(--green); background: rgba(76,175,125,0.1); }
+    .option.correct .opt-label { color: var(--green); }
+    .option.wrong { border-color: var(--red); background: rgba(224,95,95,0.1); }
+    .option.wrong .opt-label { color: var(--red); }
+    .option.reveal-correct { border-color: var(--green); background: rgba(76,175,125,0.06); }
+    .option.disabled { pointer-events: none; }
+
+    .feedback {
+      margin-top: 0.9rem;
+      padding: 0.75rem 1rem;
+      border-radius: 8px;
+      font-size: 0.88rem;
+      line-height: 1.5;
+      display: none;
+    }
+    .feedback.correct { background: rgba(76,175,125,0.12); border: 1px solid rgba(76,175,125,0.25); color: #7fe0a8; }
+    .feedback.wrong { background: rgba(224,95,95,0.12); border: 1px solid rgba(224,95,95,0.25); color: #f0a0a0; }
+    .feedback.visible { display: block; }
+    .feedback strong { font-weight: 700; }
+
+    /* Scoreboard */
+    #scoreboard {
+      display: none;
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      padding: 2rem;
+      text-align: center;
+      margin-top: 2rem;
+    }
+    #scoreboard h2 { font-size: 1.4rem; margin-bottom: 0.5rem; }
+    #scoreboard .score-num {
+      font-size: 3.5rem;
+      font-weight: 800;
+      margin: 0.75rem 0;
+      background: linear-gradient(135deg, var(--accent), var(--accent2));
+      -webkit-background-clip: text;
+      -webkit-text-fill-color: transparent;
+    }
+    #scoreboard p { color: var(--muted); font-size: 0.92rem; }
+    .retry-btn {
+      margin-top: 1.5rem;
+      padding: 0.65rem 1.75rem;
+      border-radius: 8px;
+      border: none;
+      background: linear-gradient(135deg, var(--accent), #c44a2c);
+      color: white;
+      font-weight: 700;
+      font-size: 0.95rem;
+      cursor: pointer;
+      transition: opacity 0.2s;
+    }
+    .retry-btn:hover { opacity: 0.85; }
+
+    /* Progress bar */
+    .progress-bar-wrap {
+      background: var(--surface2);
+      border-radius: 999px;
+      height: 6px;
+      margin-bottom: 2.5rem;
+      overflow: hidden;
+    }
+    #progress-bar {
+      height: 100%;
+      border-radius: 999px;
+      background: linear-gradient(90deg, var(--accent), var(--accent2));
+      width: 0%;
+      transition: width 0.4s ease;
+    }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <header>
+    <div class="crab">🦀</div>
+    <h1>S5 & S6 — Quiz &amp; Récapitulatif</h1>
+    <p>
+      <span class="badge badge-s5">S5 · Ch 4.1 — Ownership</span>
+      <span class="badge badge-s6">S6 · Ch 4.2 — References &amp; Borrowing</span>
+    </p>
+  </header>
+
+  <!-- Summary S5 -->
+  <details class="summary-block">
+    <summary>📦 Récapitulatif S5 — Ownership : move, clone, drop</summary>
+    <div class="summary-content">
+      <h3>Stack vs Heap</h3>
+      <ul>
+        <li>La <strong>stack</strong> stocke des données de taille fixe, allouées/désallouées automatiquement à chaque appel de fonction.</li>
+        <li>Le <strong>heap</strong> stocke des données de taille variable (<code>String</code>, <code>Vec</code>, <code>Box</code>…). Rust en gère la libération via l'ownership.</li>
+      </ul>
+
+      <h3>Les 3 règles d'Ownership</h3>
+      <div class="rule-box">
+        1. Chaque valeur a exactement <strong>un seul owner</strong>.<br/>
+        2. Il ne peut y avoir <strong>qu'un owner à la fois</strong>.<br/>
+        3. Quand l'owner sort de portée, la valeur est <strong>droptée</strong> (mémoire libérée).
+      </div>
+
+      <h3>Move (déplacement)</h3>
+      <ul>
+        <li>Pour les types <em>heap</em> (<code>String</code>, <code>Vec</code>…), <code>let s2 = s1</code> <strong>transfère</strong> l'ownership à <code>s2</code>.</li>
+        <li><code>s1</code> devient <strong>invalide</strong> — le compilateur refuse de l'utiliser.</li>
+        <li>Objectif : éviter le double-free.</li>
+      </ul>
+      <pre><span class="kw">let</span> s1 = <span class="ty">String</span>::<span class="fn-name">from</span>(<span class="str">"hello"</span>);
+<span class="kw">let</span> s2 = s1;                  <span class="cm">// move : s1 invalide</span>
+<span class="cm">// println!("{}", s1);       // ❌ erreur de compilation</span>
+println!(<span class="str">"{}"</span>, s2);          <span class="cm">// ✅ ok</span></pre>
+
+      <h3>Clone (copie profonde)</h3>
+      <ul>
+        <li><code>.clone()</code> crée une copie indépendante des données heap.</li>
+        <li>Explicite (coûteux) — Rust ne le fait jamais en silence.</li>
+      </ul>
+      <pre><span class="kw">let</span> s1 = <span class="ty">String</span>::<span class="fn-name">from</span>(<span class="str">"hello"</span>);
+<span class="kw">let</span> s2 = s1.<span class="fn-name">clone</span>();         <span class="cm">// copie profonde</span>
+println!(<span class="str">"{} {}"</span>, s1, s2);   <span class="cm">// ✅ les deux valides</span></pre>
+
+      <h3>Copy trait</h3>
+      <ul>
+        <li>Les types simples (<code>i32</code>, <code>bool</code>, <code>f64</code>, <code>char</code>, tuples de Copy…) implémentent <code>Copy</code>.</li>
+        <li>Ils sont <strong>copiés</strong> au lieu d'être movés — l'original reste valide.</li>
+        <li><code>String</code>, <code>Vec</code>, <code>Box</code> <strong>n'implémentent PAS</strong> <code>Copy</code>.</li>
+      </ul>
+
+      <h3>Drop</h3>
+      <ul>
+        <li>Quand une variable sort de portée (<code>}</code>), Rust appelle automatiquement <code>drop()</code>.</li>
+        <li>Libère la mémoire heap sans appel manuel à <code>free()</code>.</li>
+      </ul>
+    </div>
+  </details>
+
+  <!-- Summary S6 -->
+  <details class="summary-block">
+    <summary>🔗 Récapitulatif S6 — References, borrowing, &amp;mut</summary>
+    <div class="summary-content">
+      <h3>Principe fondamental</h3>
+      <div class="rule-box blue">
+        <strong>Pointer Safety Principle :</strong> une donnée ne peut jamais être <em>alias</em>ée ET mutée en même temps.
+      </div>
+
+      <h3>Références immutables — <code>&T</code></h3>
+      <ul>
+        <li>Emprunte une valeur <strong>en lecture seule</strong> sans en prendre l'ownership.</li>
+        <li><strong>Plusieurs</strong> <code>&T</code> simultanés : autorisé.</li>
+        <li>Le borrow checker retire les permissions W+O à la variable empruntée pendant la durée de l'emprunt.</li>
+      </ul>
+
+      <h3>Références mutables — <code>&mut T</code></h3>
+      <ul>
+        <li>Emprunte avec permission d'écriture.</li>
+        <li><strong>Une seule</strong> <code>&mut T</code> à la fois — aucun autre accès simultané.</li>
+      </ul>
+
+      <h3>Les 2 règles des références</h3>
+      <div class="rule-box blue">
+        1. Soit <strong>N</strong> références immutables (<code>&T</code>), soit <strong>exactement une</strong> référence mutable (<code>&mut T</code>) — jamais les deux en même temps.<br/>
+        2. Les références doivent toujours pointer vers des données <strong>valides</strong> (pas de dangling reference).
+      </div>
+
+      <h3>Dangling references</h3>
+      <ul>
+        <li>Rust interdit de retourner une référence vers une variable locale (qui sera droptée à la fin de la fonction).</li>
+        <li>Détecté à la compilation — zéro overhead runtime.</li>
+      </ul>
+      <pre><span class="kw">fn</span> <span class="fn-name">dangle</span>() -> &<span class="ty">String</span> {   <span class="cm">// ❌ ne compile pas</span>
+    <span class="kw">let</span> s = <span class="ty">String</span>::<span class="fn-name">from</span>(<span class="str">"hi"</span>);
+    &s  <span class="cm">// s droppé ici → référence invalide</span>
+}</pre>
+
+      <h3>NLL — Non-Lexical Lifetimes</h3>
+      <ul>
+        <li>Depuis Rust 2018 : la durée de vie d'une référence se termine à son <strong>dernier point d'utilisation</strong>, pas à la fin du bloc.</li>
+        <li>Permet de réutiliser une variable après la fin effective d'un emprunt.</li>
+      </ul>
+      <pre><span class="kw">let</span> <span class="kw">mut</span> v = <span class="fn-name">vec!</span>[<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>];
+<span class="kw">let</span> r = &v[<span class="num">0</span>];
+println!(<span class="str">"{}"</span>, r);    <span class="cm">// ← dernière utilisation de r (NLL)</span>
+v.<span class="fn-name">push</span>(<span class="num">4</span>);           <span class="cm">// ✅ ok : r n'est plus actif</span></pre>
+
+      <h3>Analogie embarquée</h3>
+      <ul>
+        <li>Pensez à un registre hardware : soit <em>plusieurs drivers le lisent</em>, soit <em>un seul l'écrit</em>. Les deux simultanément = undefined behavior.</li>
+      </ul>
+    </div>
+  </details>
+
+  <!-- Progress -->
+  <div class="progress-bar-wrap"><div id="progress-bar"></div></div>
+
+  <!-- QUIZ -->
+  <div id="quiz"></div>
+  <div id="scoreboard">
+    <h2>Quiz terminé 🎉</h2>
+    <div class="score-num" id="final-score"></div>
+    <p id="score-comment"></p>
+    <button class="retry-btn" onclick="resetQuiz()">Recommencer</button>
+  </div>
+
+</div>
+
+<script>
+const questions = [
+  // ── S5 · Ch 4.1 ──────────────────────────────────────────────
+  {
+    session: "S5",
+    text: "Combien d'owners une valeur heap peut-elle avoir simultanément ?",
+    options: ["Illimité — chaque variable peut pointer vers la même donnée", "Exactement un", "Deux au maximum", "Zéro ou un"],
+    correct: 1,
+    feedback: {
+      correct: "<strong>Exactement un.</strong> C'est la règle #1 de l'ownership. Rust garantit qu'il n'y a jamais deux owners simultanés pour éviter le double-free.",
+      wrong: "Non. La règle #1 dit : chaque valeur heap a <strong>exactement un owner</strong> à tout instant."
+    }
+  },
+  {
+    session: "S5",
+    text: "Que se passe-t-il avec s1 après <code>let s2 = s1;</code> si s1 est un <code>String</code> ?",
+    options: [
+      "s1 et s2 sont tous deux valides — String est copié",
+      "s1 est cloné dans s2, les deux restent valides",
+      "s1 est <em>moved</em> dans s2 : s1 devient invalide",
+      "Une erreur de compilation se produit immédiatement à cette ligne"
+    ],
+    correct: 2,
+    feedback: {
+      correct: "<strong>Move.</strong> <code>String</code> n'implémente pas <code>Copy</code>, donc l'ownership est transféré à <code>s2</code>. Utiliser <code>s1</code> ensuite provoque une erreur de compilation (use-after-move).",
+      wrong: "<code>String</code> est un type heap sans <code>Copy</code>. L'assignation <code>let s2 = s1</code> <strong>move</strong> l'ownership vers <code>s2</code>, rendant <code>s1</code> invalide."
+    }
+  },
+  {
+    session: "S5",
+    text: "Lequel de ces types implémente le trait <code>Copy</code> ?",
+    options: ["<code>String</code>", "<code>Vec&lt;i32&gt;</code>", "<code>Box&lt;i32&gt;</code>", "<code>i32</code>"],
+    correct: 3,
+    feedback: {
+      correct: "<strong><code>i32</code></strong> implémente <code>Copy</code> car c'est un type stack de taille fixe. <code>String</code>, <code>Vec</code> et <code>Box</code> gèrent de la mémoire heap et ne peuvent pas être copiés implicitement.",
+      wrong: "Seul <strong><code>i32</code></strong> implémente <code>Copy</code> parmi ces choix. Les types heap (<code>String</code>, <code>Vec</code>, <code>Box</code>) ne peuvent pas être copiés implicitement."
+    }
+  },
+  {
+    session: "S5",
+    text: "Ce code compile-t-il ?",
+    code: `let s1 = String::from("hello");
+let s2 = s1;
+println!("{}", s1); // utilisation de s1`,
+    options: [
+      "Oui — s1 et s2 pointent vers la même donnée",
+      "Non — s1 a été moved dans s2, use-after-move",
+      "Oui — String implémente Copy",
+      "Non — il faut déclarer s1 avec let mut"
+    ],
+    correct: 1,
+    feedback: {
+      correct: "<strong>Non, ça ne compile pas.</strong> <code>s1</code> a été moved dans <code>s2</code> à la ligne 2. Rust interdit d'utiliser <code>s1</code> ensuite. Solution : <code>let s2 = s1.clone();</code>",
+      wrong: "Ce code <strong>ne compile pas</strong>. Le move de <code>s1</code> vers <code>s2</code> invalide <code>s1</code>. C'est une erreur use-after-move détectée à la compilation."
+    }
+  },
+  {
+    session: "S5",
+    text: "Que fait <code>.clone()</code> sur un <code>String</code> ?",
+    options: [
+      "Transfère l'ownership à une nouvelle variable",
+      "Crée une copie superficielle (duplique seulement le pointeur)",
+      "Crée une copie profonde indépendante des données heap",
+      "Droppe la valeur originale et la recrée"
+    ],
+    correct: 2,
+    feedback: {
+      correct: "<strong>Copie profonde.</strong> <code>.clone()</code> alloue de la nouvelle mémoire heap et y copie toutes les données. Les deux variables sont ensuite indépendantes. C'est explicite et potentiellement coûteux — Rust ne le fait jamais en silence.",
+      wrong: "<code>.clone()</code> crée une <strong>copie profonde</strong> : nouvelle allocation heap + copie du contenu. Les deux variables sont indépendantes."
+    }
+  },
+
+  // ── S6 · Ch 4.2 ──────────────────────────────────────────────
+  {
+    session: "S6",
+    text: "Combien de références mutables (<code>&mut T</code>) vers la même donnée peuvent exister simultanément ?",
+    options: ["Illimité", "Deux", "Exactement une", "Zéro"],
+    correct: 2,
+    feedback: {
+      correct: "<strong>Exactement une.</strong> Une référence mutable exclusive garantit qu'aucun autre accès (lecture ou écriture) ne peut avoir lieu en même temps. C'est ce qui élimine les data races à la compilation.",
+      wrong: "La règle est stricte : <strong>exactement une</strong> <code>&mut T</code> à la fois, avec exclusion totale de tout autre accès simultané."
+    }
+  },
+  {
+    session: "S6",
+    text: "Peut-on avoir une référence immutable (<code>&T</code>) et une référence mutable (<code>&mut T</code>) vers la même donnée en même temps ?",
+    options: [
+      "Oui, toujours",
+      "Oui, mais seulement pour les données heap",
+      "Non — mutable et immutable ne peuvent pas coexister",
+      "Oui, à condition de marquer le code unsafe"
+    ],
+    correct: 2,
+    feedback: {
+      correct: "<strong>Non.</strong> C'est le Pointer Safety Principle : on ne peut pas aliaser ET muter simultanément. Une <code>&mut T</code> active supprime toute permission d'accès (lecture ou écriture) aux autres références.",
+      wrong: "<strong>Non.</strong> Rust interdit de mélanger <code>&T</code> et <code>&mut T</code> vers la même donnée. Cela violerait le Pointer Safety Principle et pourrait provoquer des data races."
+    }
+  },
+  {
+    session: "S6",
+    text: "Qu'est-ce qu'une <em>dangling reference</em> ?",
+    options: [
+      "Une référence dont la portée est trop longue",
+      "Une référence pointant vers de la mémoire libérée ou hors de portée",
+      "Une référence à une variable stack depuis la heap",
+      "Une référence mutable dans une struct immutable"
+    ],
+    correct: 1,
+    feedback: {
+      correct: "<strong>Référence vers mémoire libérée.</strong> Rust détecte et interdit les dangling references à la compilation — par exemple, retourner une référence vers une variable locale qui sera droppée en quittant la fonction.",
+      wrong: "Une dangling reference est une référence qui pointe vers de la mémoire <strong>déjà libérée</strong>. Rust les détecte à la compilation, contrairement à C/C++ où c'est un UB silencieux."
+    }
+  },
+  {
+    session: "S6",
+    text: "Ce code compile-t-il ?",
+    code: `let mut v = vec![1, 2, 3];
+let r = &v[0];
+v.push(4);       // mutation de v
+println!("{}", r); // utilisation de r après push`,
+    options: [
+      "Oui — r est immutable, push n'est pas interdit",
+      "Non — r est encore vivant lors du push, conflit d'emprunt",
+      "Oui — NLL permet cela depuis Rust 2018",
+      "Non — on ne peut pas prendre une référence sur un élément de Vec"
+    ],
+    correct: 1,
+    feedback: {
+      correct: "<strong>Non, ça ne compile pas.</strong> <code>r</code> est encore utilisé après <code>push</code> (à la ligne <code>println!</code>), donc son emprunt immutable de <code>v</code> est toujours actif lors du <code>push</code>. Intervertir les lignes 3 et 4 résoudrait le problème (NLL terminerait <code>r</code> avant le push).",
+      wrong: "Ce code <strong>ne compile pas</strong>. <code>r</code> est utilisé <em>après</em> <code>v.push(4)</code>, donc l'emprunt immutable de <code>v</code> dure jusqu'au <code>println!</code>. Avec NLL, si <code>println!</code> était avant <code>push</code>, ce serait ok."
+    }
+  },
+  {
+    session: "S6",
+    text: "Que changent les <em>Non-Lexical Lifetimes</em> (NLL) ?",
+    options: [
+      "Les références vivent maintenant jusqu'à la fin de la fonction",
+      "La durée de vie d'une référence se termine à son dernier point d'utilisation, pas à la fin du bloc",
+      "Les références peuvent désormais outlive les données qu'elles pointent",
+      "Les références mutables et immutables peuvent coexister"
+    ],
+    correct: 1,
+    feedback: {
+      correct: "<strong>Durée de vie au dernier usage.</strong> Avant NLL, une référence vivait jusqu'à la fermeture <code>}</code> de son bloc, rendant certains patterns valides impossibles. NLL permet de libérer l'emprunt dès le dernier point d'utilisation réel de la référence.",
+      wrong: "NLL signifie que la durée de vie d'une référence se termine à son <strong>dernier point d'utilisation</strong> dans le code, pas à la fin syntaxique du bloc (<code>}</code>). Cela rend le borrow checker plus permissif sans sacrifier la sécurité."
+    }
+  }
+];
+
+let answered = 0;
+let score = 0;
+
+function buildQuiz() {
+  const container = document.getElementById('quiz');
+  container.innerHTML = '';
+
+  // Section S5
+  container.insertAdjacentHTML('beforeend', `
+    <div class="section-label">
+      <div class="line"></div>
+      <span>S5 · Ch 4.1 — Ownership</span>
+      <div class="line"></div>
+    </div>`);
+
+  questions.forEach((q, i) => {
+    if (i === 5) {
+      container.insertAdjacentHTML('beforeend', `
+        <div class="section-label">
+          <div class="line"></div>
+          <span>S6 · Ch 4.2 — References &amp; Borrowing</span>
+          <div class="line"></div>
+        </div>`);
+    }
+
+    const codeBlock = q.code
+      ? `<pre class="q-code">${q.code.replace(/</g,'&lt;').replace(/>/g,'&gt;')}</pre>`
+      : '';
+
+    const opts = q.options.map((o, j) => `
+      <div class="option" data-q="${i}" data-opt="${j}" onclick="selectOption(${i},${j})">
+        <span class="opt-label">${'ABCD'[j]}</span>
+        <span>${o}</span>
+      </div>`).join('');
+
+    container.insertAdjacentHTML('beforeend', `
+      <div class="quiz-card" id="card-${i}">
+        <div class="q-header">
+          <div class="q-num">${i+1}</div>
+          <div class="q-text">${q.text}</div>
+        </div>
+        ${codeBlock}
+        <div class="options">${opts}</div>
+        <div class="feedback" id="fb-${i}"></div>
+      </div>`);
+  });
+}
+
+function selectOption(qIdx, optIdx) {
+  const card = document.getElementById(`card-${qIdx}`);
+  if (card.classList.contains('answered-correct') || card.classList.contains('answered-wrong')) return;
+
+  const q = questions[qIdx];
+  const isCorrect = optIdx === q.correct;
+
+  // Disable all options
+  card.querySelectorAll('.option').forEach(el => el.classList.add('disabled'));
+
+  // Mark chosen option
+  const chosen = card.querySelector(`[data-opt="${optIdx}"]`);
+  chosen.classList.add(isCorrect ? 'correct' : 'wrong');
+
+  // Always reveal correct
+  if (!isCorrect) {
+    card.querySelector(`[data-opt="${q.correct}"]`).classList.add('reveal-correct');
+  }
+
+  // Card border
+  card.classList.add(isCorrect ? 'answered-correct' : 'answered-wrong');
+
+  // Feedback
+  const fb = document.getElementById(`fb-${qIdx}`);
+  fb.innerHTML = (isCorrect ? '✅ ' : '❌ ') + (isCorrect ? q.feedback.correct : q.feedback.wrong);
+  fb.classList.add('visible', isCorrect ? 'correct' : 'wrong');
+
+  if (isCorrect) score++;
+  answered++;
+  updateProgress();
+
+  if (answered === questions.length) showScore();
+}
+
+function updateProgress() {
+  document.getElementById('progress-bar').style.width = `${(answered / questions.length) * 100}%`;
+}
+
+function showScore() {
+  const sb = document.getElementById('scoreboard');
+  sb.style.display = 'block';
+  document.getElementById('final-score').textContent = `${score} / ${questions.length}`;
+  const pct = score / questions.length;
+  const comments = [
+    [1.0, "Parfait ! Ownership et borrowing n'ont plus de secrets pour toi. 🏆"],
+    [0.8, "Excellent ! Quelques points à revoir, mais tu maîtrises bien les bases."],
+    [0.6, "Bon travail. Relis les récap S5/S6 et retente le quiz."],
+    [0.0, "Continue — l'ownership est difficile au début. Relis les chapitres 4.1 et 4.2."]
+  ];
+  document.getElementById('score-comment').textContent = comments.find(([t]) => pct >= t)[1];
+  sb.scrollIntoView({ behavior: 'smooth', block: 'center' });
+}
+
+function resetQuiz() {
+  answered = 0; score = 0;
+  document.getElementById('scoreboard').style.display = 'none';
+  updateProgress();
+  buildQuiz();
+  window.scrollTo({ top: 0, behavior: 'smooth' });
+}
+
+buildQuiz();
+</script>
+</body>
+</html>

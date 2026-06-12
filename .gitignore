@@ -1,0 +1,9 @@
+# Rust build artifacts
+target/
+**/*.rs.bk
+
+# Projects folder — small book exercises, not tracked here
+projects/
+
+# Rustlings-specific
+rustlings/.vscode/
