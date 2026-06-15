@@ -31,3 +31,6 @@ async — Bloc 4+), say so explicitly rather than quietly using it.
 
 ## Out of scope — don't introduce unprompted
 Web / async frameworks, Wasm, GUI, game dev. `async` only from Bloc 5 onward.
+
+## Memory
+Session feedback and preferences are versioned in `.claude/memory/`. Read `MEMORY.md` at the start of each session.
