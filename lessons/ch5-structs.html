@@ -1,0 +1,523 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ch.5 — Structs & Méthodes</title>
+  <style>
+    :root {
+      --bg: #0d1117;
+      --surface: #161b22;
+      --surface2: #21262d;
+      --border: #30363d;
+      --text: #e6edf3;
+      --muted: #8b949e;
+      --accent: #f78166;
+      --green: #3fb950;
+      --blue: #58a6ff;
+      --yellow: #d29922;
+      --purple: #bc8cff;
+      --code-bg: #1f2937;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      padding: 2rem 1rem;
+    }
+    .container { max-width: 860px; margin: 0 auto; }
+
+    h1 { font-size: 2rem; color: var(--accent); margin-bottom: .3rem; }
+    h2 { font-size: 1.4rem; color: var(--blue); margin: 2.5rem 0 .8rem; border-bottom: 1px solid var(--border); padding-bottom: .4rem; }
+    h3 { font-size: 1.1rem; color: var(--purple); margin: 1.5rem 0 .5rem; }
+    p  { margin-bottom: .9rem; color: var(--text); }
+    a  { color: var(--blue); }
+    ul, ol { padding-left: 1.5rem; margin-bottom: .9rem; }
+    li { margin-bottom: .3rem; }
+
+    .tag {
+      display: inline-block;
+      font-size: .72rem;
+      font-weight: 700;
+      letter-spacing: .05em;
+      padding: .15rem .5rem;
+      border-radius: 20px;
+      background: var(--surface2);
+      color: var(--muted);
+      margin-bottom: 1rem;
+      text-transform: uppercase;
+    }
+
+    pre {
+      background: var(--code-bg);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.1rem 1.3rem;
+      overflow-x: auto;
+      margin: .8rem 0 1.2rem;
+      font-family: 'Cascadia Code', 'Fira Code', 'Consolas', monospace;
+      font-size: .88rem;
+      line-height: 1.6;
+    }
+    code { font-family: inherit; }
+    .keyword  { color: #ff7b72; }
+    .type     { color: #ffa657; }
+    .string   { color: #a5d6ff; }
+    .comment  { color: #6e7681; font-style: italic; }
+    .fn-name  { color: #d2a8ff; }
+    .number   { color: #79c0ff; }
+    .macro    { color: #f78166; }
+    .lifetime { color: #ffd700; }
+
+    .callout {
+      border-left: 4px solid var(--blue);
+      background: var(--surface);
+      border-radius: 0 8px 8px 0;
+      padding: .9rem 1.2rem;
+      margin: 1.2rem 0;
+    }
+    .callout.try   { border-color: var(--green); }
+    .callout.warn  { border-color: var(--yellow); }
+    .callout.embed { border-color: var(--accent); }
+    .callout-title { font-weight: 700; font-size: .85rem; letter-spacing: .05em; text-transform: uppercase; margin-bottom: .4rem; }
+    .callout .callout-title { color: var(--blue); }
+    .callout.try .callout-title   { color: var(--green); }
+    .callout.warn .callout-title  { color: var(--yellow); }
+    .callout.embed .callout-title { color: var(--accent); }
+
+    /* ── Quiz ── */
+    .quiz-section {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 2rem;
+      margin-top: 3rem;
+    }
+    .quiz-section h2 { border: none; margin-top: 0; }
+    .question {
+      background: var(--surface2);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem 1.4rem;
+      margin: 1.4rem 0;
+    }
+    .question p { margin-bottom: .8rem; font-weight: 500; }
+    .option {
+      display: flex;
+      align-items: flex-start;
+      gap: .6rem;
+      padding: .5rem .8rem;
+      border-radius: 6px;
+      cursor: pointer;
+      transition: background .15s;
+      margin-bottom: .3rem;
+      user-select: none;
+    }
+    .option:hover { background: rgba(255,255,255,.04); }
+    .option input { margin-top: .22rem; accent-color: var(--blue); cursor: pointer; }
+    .option label { cursor: pointer; line-height: 1.5; }
+    .option code { background: var(--code-bg); padding: .1rem .35rem; border-radius: 4px; font-size: .85rem; font-family: 'Cascadia Code', monospace; }
+    .feedback { font-size: .88rem; margin-top: .7rem; padding: .6rem .9rem; border-radius: 6px; display: none; }
+    .feedback.correct { background: rgba(63,185,80,.15); border: 1px solid var(--green); color: var(--green); display: block; }
+    .feedback.wrong   { background: rgba(248,81,73,.12); border: 1px solid #f85149; color: #f85149; display: block; }
+    .check-btn {
+      margin-top: 1rem;
+      background: var(--blue);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      padding: .5rem 1.1rem;
+      font-weight: 700;
+      font-size: .9rem;
+      cursor: pointer;
+      transition: opacity .15s;
+    }
+    .check-btn:hover { opacity: .85; }
+    .score-bar {
+      margin-top: 2rem;
+      padding: 1.2rem;
+      background: var(--surface2);
+      border-radius: 8px;
+      text-align: center;
+      font-size: 1.15rem;
+      font-weight: 700;
+      display: none;
+    }
+    .score-bar.show { display: block; }
+  </style>
+</head>
+<body>
+<div class="container">
+
+  <div class="tag">Bloc 3 · Chapitre 5</div>
+  <h1>Structs &amp; Méthodes</h1>
+  <p style="color:var(--muted)">
+    <a href="https://rust-book.cs.brown.edu/ch05-00-structs.html" target="_blank">Brown Book Ch.5</a> ·
+    <a href="https://doc.rust-lang.org/std/keyword.struct.html" target="_blank">Référence std</a>
+  </p>
+
+  <!-- ── 1. Pourquoi les structs ── -->
+  <h2>1. Pourquoi les structs ?</h2>
+  <p>
+    En C tu regrouperais une lecture BME280 dans une struct :
+  </p>
+  <pre><code><span class="comment">// C</span>
+<span class="keyword">typedef struct</span> {
+    int32_t  temperature;  <span class="comment">// centièmes de degrés</span>
+    uint32_t humidity;
+    uint32_t pressure;
+    bool     valid;
+} SensorReading;</code></pre>
+  <p>Rust fait la même chose, mais la struct fait partie du système de types — pas juste un bloc mémoire nommé.</p>
+
+  <!-- ── 2. Syntaxe de base ── -->
+  <h2>2. Syntaxe de base</h2>
+  <pre><code><span class="comment">// Déclaration</span>
+<span class="keyword">struct</span> <span class="type">SensorReading</span> {
+    temperature_raw: <span class="type">i32</span>,
+    humidity_raw:    <span class="type">u32</span>,
+    pressure_raw:    <span class="type">u32</span>,
+    valid:           <span class="type">bool</span>,
+}
+
+<span class="comment">// Instanciation</span>
+<span class="keyword">let</span> reading = <span class="type">SensorReading</span> {
+    temperature_raw: <span class="number">2534</span>,
+    humidity_raw:    <span class="number">6421</span>,
+    pressure_raw:    <span class="number">101325</span>,
+    valid:           <span class="keyword">true</span>,
+};</code></pre>
+
+  <h3>Field init shorthand</h3>
+  <p>Quand la variable locale a le <em>même nom</em> que le champ, on peut omettre la clé :</p>
+  <pre><code><span class="keyword">fn</span> <span class="fn-name">new</span>(temperature_raw: <span class="type">i32</span>, humidity_raw: <span class="type">u32</span>, pressure_raw: <span class="type">u32</span>) -> <span class="type">SensorReading</span> {
+    <span class="type">SensorReading</span> {
+        temperature_raw,   <span class="comment">// shorthand : identique à temperature_raw: temperature_raw</span>
+        humidity_raw,
+        pressure_raw,
+        valid: <span class="keyword">true</span>,
+    }
+}</code></pre>
+
+  <h3>Struct update syntax</h3>
+  <p>Pour créer un nouvel objet en changeant seulement quelques champs :</p>
+  <pre><code><span class="keyword">let</span> base = <span class="type">SensorReading</span> { temperature_raw: <span class="number">2500</span>, humidity_raw: <span class="number">6000</span>, pressure_raw: <span class="number">101325</span>, valid: <span class="keyword">true</span> };
+<span class="keyword">let</span> updated = <span class="type">SensorReading</span> { pressure_raw: <span class="number">98000</span>, ..base };</code></pre>
+  <div class="callout warn">
+    <div class="callout-title">⚠ Move ou Copy ?</div>
+    Le <code>..</code> <em>move</em> les champs non-<code>Copy</code> hors de <code>base</code> (ex: <code>String</code>).
+    Si tous les champs sont <code>Copy</code> (<code>i32</code>, <code>u32</code>, <code>bool</code>…), <code>base</code> reste utilisable.
+    La règle est la même que pour n'importe quelle valeur — le borrow checker s'applique champ par champ.
+  </div>
+
+  <!-- ── 3. Variantes ── -->
+  <h2>3. Autres formes de structs</h2>
+
+  <h3>Tuple structs</h3>
+  <p>Quand les noms de champs n'apportent rien, on numérote avec <code>.0</code>, <code>.1</code>, etc. :</p>
+  <pre><code><span class="keyword">struct</span> <span class="type">RgbColor</span>(<span class="type">u8</span>, <span class="type">u8</span>, <span class="type">u8</span>);
+
+<span class="keyword">let</span> red = <span class="type">RgbColor</span>(<span class="number">255</span>, <span class="number">0</span>, <span class="number">0</span>);
+<span class="macro">println!</span>(<span class="string">"{}"</span>, red.<span class="number">0</span>);  <span class="comment">// 255</span></code></pre>
+  <p>Utilité embedded : encoder des paires (adresse I2C, registre), des vecteurs 3D en virgule fixe, etc.</p>
+
+  <h3>Unit-like structs</h3>
+  <p>Sans aucun champ — utile pour implémenter des traits sans état (ex: marqueur de type) :</p>
+  <pre><code><span class="keyword">struct</span> <span class="type">Uninitialized</span>;   <span class="comment">// type-state : on reviendra là-dessus en Bloc 4</span></code></pre>
+
+  <!-- ── 4. Ownership dans les structs ── -->
+  <h2>4. Ownership &amp; durée de vie dans les champs</h2>
+  <p>
+    Pourquoi utiliser <code>String</code> plutôt que <code>&amp;str</code> dans un struct ?
+    Parce qu'un champ <code>&amp;str</code> implique que les données vivent <em>ailleurs</em>, et le compilateur
+    a besoin d'une <a href="https://doc.rust-lang.org/book/ch10-03-lifetime-syntax.html" target="_blank">annotation de durée de vie</a>
+    pour le savoir — concept du Bloc 4.
+  </p>
+  <pre><code><span class="comment">// ✅ La struct possède ses données — pas de problème de durée de vie</span>
+<span class="keyword">struct</span> <span class="type">DeviceName</span> {
+    label: <span class="type">String</span>,
+}
+
+<span class="comment">// ❌ Refus du compilateur sans annotation de lifetime</span>
+<span class="keyword">struct</span> <span class="type">DeviceName</span> {
+    label: <span class="type">&amp;str</span>,   <span class="comment">// error[E0106]: missing lifetime specifier</span>
+}</code></pre>
+  <div class="callout embed">
+    <div class="callout-title">🔌 Angle embedded</div>
+    Dans du code <code>no_std</code>, on préfère souvent éviter <code>String</code> (qui alloue).
+    On utilise <code>&amp;'static str</code> (chaîne en flash) ou un tableau <code>[u8; N]</code>.
+    On y reviendra quand on abordera les lifetimes et <code>heapless</code>.
+  </div>
+
+  <!-- ── 5. Méthodes ── -->
+  <h2>5. Méthodes — le bloc <code>impl</code></h2>
+  <p>
+    Les méthodes sont des fonctions associées à un type, déclarées dans un bloc <code>impl</code>.
+    Le premier paramètre est toujours une forme de <code>self</code> :
+  </p>
+
+  <table style="width:100%;border-collapse:collapse;margin-bottom:1rem;font-size:.9rem">
+    <thead>
+      <tr style="background:var(--surface2)">
+        <th style="text-align:left;padding:.6rem .9rem;border:1px solid var(--border)">Signature</th>
+        <th style="text-align:left;padding:.6rem .9rem;border:1px solid var(--border)">Ce que ça fait</th>
+        <th style="text-align:left;padding:.6rem .9rem;border:1px solid var(--border)">Analogie C</th>
+      </tr>
+    </thead>
+    <tbody>
+      <tr>
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)"><code>&amp;self</code></td>
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)">Lecture seule</td>
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)"><code>const SensorReading*</code></td>
+      </tr>
+      <tr style="background:var(--surface2)">
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)"><code>&amp;mut self</code></td>
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)">Mutation</td>
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)"><code>SensorReading*</code></td>
+      </tr>
+      <tr>
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)"><code>self</code></td>
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)">Consommation (move)</td>
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)">Pas d'équivalent direct</td>
+      </tr>
+      <tr style="background:var(--surface2)">
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)">Pas de <code>self</code></td>
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)">Fonction associée (constructeur, factory)</td>
+        <td style="padding:.55rem .9rem;border:1px solid var(--border)"><code>sensor_reading_init()</code></td>
+      </tr>
+    </tbody>
+  </table>
+
+  <pre><code><span class="keyword">impl</span> <span class="type">SensorReading</span> {
+    <span class="comment">// Fonction associée — appelée avec SensorReading::new(…)</span>
+    <span class="keyword">pub fn</span> <span class="fn-name">new</span>(temperature_raw: <span class="type">i32</span>, humidity_raw: <span class="type">u32</span>, pressure_raw: <span class="type">u32</span>) -> <span class="type">Self</span> {
+        <span class="keyword">let</span> valid = temperature_raw >= <span class="number">-4000</span>
+            &amp;&amp; temperature_raw &lt;= <span class="number">8500</span>
+            &amp;&amp; humidity_raw &lt;= <span class="number">10000</span>
+            &amp;&amp; pressure_raw > <span class="number">0</span>;
+        <span class="type">Self</span> { temperature_raw, humidity_raw, pressure_raw, valid }
+    }
+
+    <span class="comment">// Méthode lecture — emprunt partagé</span>
+    <span class="keyword">pub fn</span> <span class="fn-name">temperature_celsius</span>(&amp;<span class="keyword">self</span>) -> <span class="type">f32</span> {
+        <span class="keyword">self</span>.temperature_raw <span class="keyword">as</span> <span class="type">f32</span> / <span class="number">100.0</span>
+    }
+
+    <span class="comment">// Méthode mutation — emprunt exclusif</span>
+    <span class="keyword">pub fn</span> <span class="fn-name">invalidate</span>(&amp;<span class="keyword">mut self</span>) {
+        <span class="keyword">self</span>.valid = <span class="keyword">false</span>;
+    }
+}</code></pre>
+
+  <div class="callout try">
+    <div class="callout-title">✅ Essaie dans le playground</div>
+    <a href="https://play.rust-lang.org/" target="_blank">play.rust-lang.org</a> — colle le struct + impl ci-dessus,
+    puis appelle <code>SensorReading::new(2534, 6421, 101325)</code> dans <code>main()</code>.
+    Essaie ensuite d'appeler <code>invalidate()</code> sans déclarer la variable <code>mut</code> — lis l'erreur.
+  </div>
+
+  <!-- ── 6. Debug ── -->
+  <h2>6. <code>#[derive(Debug)]</code></h2>
+  <p>
+    Rust refuse d'afficher un struct avec <code>{:?}</code> à moins qu'il implémente le trait <code>Debug</code>.
+    La façon la plus simple : laisser le compilateur le dériver automatiquement.
+  </p>
+  <pre><code><span class="macro">#[derive(Debug)]</span>
+<span class="keyword">struct</span> <span class="type">SensorReading</span> { <span class="comment">/* … */</span> }
+
+<span class="keyword">let</span> r = <span class="type">SensorReading</span>::<span class="fn-name">new</span>(<span class="number">2534</span>, <span class="number">6421</span>, <span class="number">101325</span>);
+<span class="macro">println!</span>(<span class="string">"{r:?}"</span>);   <span class="comment">// SensorReading { temperature_raw: 2534, … }</span>
+<span class="macro">println!</span>(<span class="string">"{r:#?}"</span>);  <span class="comment">// version pretty-printed</span></code></pre>
+  <div class="callout">
+    <div class="callout-title">Info</div>
+    <code>#[derive(Debug)]</code> est une <em>macro procédurale</em> — le compilateur génère le code
+    d'affichage à ta place. On reviendra sur les macros en Bloc 3.
+    Pour l'instant retiens : sans <code>Debug</code>, <code>{:?}</code> est une erreur de compilation.
+  </div>
+
+  <!-- ── 7. Méthodes vs fonctions ── -->
+  <h2>7. Méthodes vs fonctions libres — quand choisir ?</h2>
+  <p>
+    Rust <em>n'impose pas</em> les méthodes. Une fonction <code>fn area(r: &amp;Rectangle) -&gt; f64</code>
+    et une méthode <code>fn area(&amp;self) -&gt; f64</code> font la même chose.
+    Mais les méthodes gagnent sur plusieurs points :
+  </p>
+  <ul>
+    <li>Autocomplétion (<code>r.</code> dans ton éditeur)</li>
+    <li>Namespace clair (<code>SensorReading::new</code> vs <code>new_sensor_reading</code>)</li>
+    <li>Implémentation de traits (on ne peut pas implémenter un trait avec des fonctions libres)</li>
+  </ul>
+  <div class="callout embed">
+    <div class="callout-title">🔌 Pattern type-state (aperçu Bloc 4)</div>
+    En embedded, on utilise souvent les fonctions associées comme <em>constructeurs d'état</em> :
+    <code>Sensor::&lt;Uninitialized&gt;::new()</code> retourne un type différent de <code>Sensor::&lt;Running&gt;::init()</code>.
+    Le compilateur rend alors impossible d'appeler <code>read()</code> sur un capteur non initialisé.
+    C'est ce qu'on appellera le <em>type-state pattern</em> — Bloc 4.
+  </div>
+
+  <!-- ── Quiz ── -->
+  <div class="quiz-section">
+    <h2>🎯 Quiz de validation</h2>
+    <p style="color:var(--muted)">10 questions · Coche ta réponse puis clique "Vérifier".</p>
+
+    <!-- Q1 -->
+    <div class="question" id="q1">
+      <p>1. Tu as <code>let s = MyStruct { x: 1, y: 2 };</code>. Ensuite tu écris <code>let t = MyStruct { x: 10, ..s };</code>. Quels champs de <code>s</code> sont <em>movés</em> dans <code>t</code> si <code>x</code> et <code>y</code> sont tous deux <code>i32</code> ?</p>
+      <label class="option"><input type="radio" name="q1" value="a"> <label>Aucun — les <code>i32</code> sont <code>Copy</code>, <code>s</code> reste utilisable.</label></label>
+      <label class="option"><input type="radio" name="q1" value="b"> <label><code>y</code> est mové, <code>s.x</code> reste accessible.</label></label>
+      <label class="option"><input type="radio" name="q1" value="c"> <label>Les deux champs sont movés, <code>s</code> est consommé.</label></label>
+      <label class="option"><input type="radio" name="q1" value="d"> <label>La struct update syntax clone toujours.</label></label>
+      <button class="check-btn" onclick="check('q1','a','✅ Correct ! <code>i32</code> implémente <code>Copy</code>, donc aucun move ne se produit. <code>s</code> reste pleinement valide après la struct update syntax.','❌ Non. Le critère clé est si les champs sont <code>Copy</code>. <code>i32</code> l\'est — aucun move.')">Vérifier</button>
+      <div class="feedback" id="q1-fb"></div>
+    </div>
+
+    <!-- Q2 -->
+    <div class="question" id="q2">
+      <p>2. Quelle est la différence entre <code>&amp;self</code> et <code>&amp;mut self</code> dans un bloc <code>impl</code> ?</p>
+      <label class="option"><input type="radio" name="q2" value="a"> <label><code>&amp;mut self</code> consomme la valeur (move).</label></label>
+      <label class="option"><input type="radio" name="q2" value="b"> <label><code>&amp;self</code> permet la lecture ; <code>&amp;mut self</code> permet la mutation, mais tous deux empruntent sans consommer.</label></label>
+      <label class="option"><input type="radio" name="q2" value="c"> <label>Il n'y a aucune différence au runtime, c'est juste une convention.</label></label>
+      <label class="option"><input type="radio" name="q2" value="d"> <label><code>&amp;self</code> n'est accessible qu'en dehors du module.</label></label>
+      <button class="check-btn" onclick="check('q2','b','✅ Exact ! <code>&amp;self</code> = emprunt partagé (lecture), <code>&amp;mut self</code> = emprunt exclusif (mutation). Aucun des deux ne move. <code>self</code> sans <code>&amp;</code> consomme.','❌ Non. <code>&amp;mut self</code> emprunte de façon exclusive et autorise la mutation — il ne move pas. C\'est <code>self</code> (sans <code>&amp;</code>) qui move.')">Vérifier</button>
+      <div class="feedback" id="q2-fb"></div>
+    </div>
+
+    <!-- Q3 -->
+    <div class="question" id="q3">
+      <p>3. Pourquoi le compilateur refuse-t-il un champ <code>&amp;str</code> dans un struct sans annotation supplémentaire ?</p>
+      <label class="option"><input type="radio" name="q3" value="a"> <label>Parce que <code>&amp;str</code> n'est pas un type valide en Rust.</label></label>
+      <label class="option"><input type="radio" name="q3" value="b"> <label>Parce qu'il manque une annotation de <em>lifetime</em> : le compilateur ne sait pas combien de temps les données référencées vivent.</label></label>
+      <label class="option"><input type="radio" name="q3" value="c"> <label>Parce qu'un struct ne peut contenir que des types <code>Copy</code>.</label></label>
+      <label class="option"><input type="radio" name="q3" value="d"> <label>C'est une limitation temporaire du compilateur, pas une règle du langage.</label></label>
+      <button class="check-btn" onclick="check('q3','b','✅ Exact ! Un <code>&amp;str</code> est une référence — le compilateur doit savoir que les données qu\'il pointe vivent <em>au moins aussi longtemps</em> que le struct. Sans annotation <code>\'lifetime</code>, c\'est ambigu. Solution immédiate : utiliser <code>String</code>.','❌ Non. <code>&amp;str</code> est un type parfaitement valide, mais une référence dans un struct nécessite une annotation de lifetime. <code>String</code> résout le problème car le struct <em>possède</em> les données.')">Vérifier</button>
+      <div class="feedback" id="q3-fb"></div>
+    </div>
+
+    <!-- Q4 -->
+    <div class="question" id="q4">
+      <p>4. Comment appelle-t-on une fonction dans un bloc <code>impl</code> qui n'a <em>pas</em> de paramètre <code>self</code> ?</p>
+      <label class="option"><input type="radio" name="q4" value="a"> <label>Une méthode statique.</label></label>
+      <label class="option"><input type="radio" name="q4" value="b"> <label>Une fonction libre.</label></label>
+      <label class="option"><input type="radio" name="q4" value="c"> <label>Une fonction associée (<em>associated function</em>).</label></label>
+      <label class="option"><input type="radio" name="q4" value="d"> <label>Un constructeur implicite.</label></label>
+      <button class="check-btn" onclick="check('q4','c','✅ Correct ! Le terme Rust est <em>associated function</em>. Elle s\'appelle avec <code>Type::nom()</code>. La convention pour un constructeur principal est <code>::new()</code>, mais ce n\'est qu\'une convention — pas une règle du langage.','❌ Non. En Rust on dit <em>associated function</em> (pas méthode statique, terme C++/Java). Elle vit dans le bloc <code>impl</code> mais ne prend pas de <code>self</code>.')">Vérifier</button>
+      <div class="feedback" id="q4-fb"></div>
+    </div>
+
+    <!-- Q5 -->
+    <div class="question" id="q5">
+      <p>5. Que se passe-t-il si tu oublies <code>#[derive(Debug)]</code> et que tu écris <code>println!("{:?}", my_struct)</code> ?</p>
+      <label class="option"><input type="radio" name="q5" value="a"> <label>Rust affiche l'adresse mémoire à la place.</label></label>
+      <label class="option"><input type="radio" name="q5" value="b"> <label>Erreur de compilation : le trait <code>Debug</code> n'est pas implémenté.</label></label>
+      <label class="option"><input type="radio" name="q5" value="c"> <label>Erreur à l'exécution (panic).</label></label>
+      <label class="option"><input type="radio" name="q5" value="d"> <label>Rust utilise automatiquement <code>Display</code> si <code>Debug</code> est absent.</label></label>
+      <button class="check-btn" onclick="check('q5','b','✅ Exact ! C\'est une <strong>erreur de compilation</strong>. Le trait <code>Debug</code> doit être implémenté (ou dérivé) pour utiliser <code>{:?}</code>. Le message d\'erreur te dira exactement quel trait manque.','❌ Non. Rust n\'invente rien à l\'exécution. L\'absence de <code>Debug</code> est attrapée à la compilation, pas au runtime.')">Vérifier</button>
+      <div class="feedback" id="q5-fb"></div>
+    </div>
+
+    <!-- Q6 -->
+    <div class="question" id="q6">
+      <p>6. Tu as un tuple struct <code>struct Voltage(f32);</code>. Comment accèdes-tu à la valeur interne ?</p>
+      <label class="option"><input type="radio" name="q6" value="a"> <label><code>v.value</code></label></label>
+      <label class="option"><input type="radio" name="q6" value="b"> <label><code>v.get()</code></label></label>
+      <label class="option"><input type="radio" name="q6" value="c"> <label><code>v.0</code></label></label>
+      <label class="option"><input type="radio" name="q6" value="d"> <label><code>*v</code></label></label>
+      <button class="check-btn" onclick="check('q6','c','✅ Correct ! Les champs d\'un tuple struct sont accessibles par position : <code>.0</code>, <code>.1</code>, etc. C\'est la même syntaxe que pour les tuples ordinaires.','❌ Non. Un tuple struct n\'a pas de noms de champs — on utilise l\'index de position : <code>.0</code>, <code>.1</code>…')">Vérifier</button>
+      <div class="feedback" id="q6-fb"></div>
+    </div>
+
+    <!-- Q7 -->
+    <div class="question" id="q7">
+      <p>7. Dans un bloc <code>impl</code>, <code>Self</code> (majuscule) est un alias pour…</p>
+      <label class="option"><input type="radio" name="q7" value="a"> <label>Le module courant.</label></label>
+      <label class="option"><input type="radio" name="q7" value="b"> <label>Le type sur lequel le bloc <code>impl</code> est défini.</label></label>
+      <label class="option"><input type="radio" name="q7" value="c"> <label>L'instance courante (comme <code>this</code> en Java).</label></label>
+      <label class="option"><input type="radio" name="q7" value="d"> <label>Une variable globale implicite.</label></label>
+      <button class="check-btn" onclick="check('q7','b','✅ Exact ! <code>Self</code> est un alias de type — dans <code>impl SensorReading</code>, <code>Self</code> = <code>SensorReading</code>. À ne pas confondre avec <code>self</code> (minuscule) qui est l\'instance.','❌ Non. <code>Self</code> (majuscule) = le <em>type</em> lui-même. <code>self</code> (minuscule) = l\'<em>instance</em>. Ce sont deux choses distinctes.')">Vérifier</button>
+      <div class="feedback" id="q7-fb"></div>
+    </div>
+
+    <!-- Q8 -->
+    <div class="question" id="q8">
+      <p>8. Tu veux appeler <code>r.invalidate()</code> où <code>invalidate</code> prend <code>&amp;mut self</code>. Quelle déclaration de <code>r</code> est nécessaire ?</p>
+      <label class="option"><input type="radio" name="q8" value="a"> <label><code>let r = SensorReading::new(…);</code></label></label>
+      <label class="option"><input type="radio" name="q8" value="b"> <label><code>let mut r = SensorReading::new(…);</code></label></label>
+      <label class="option"><input type="radio" name="q8" value="c"> <label><code>let &amp;mut r = SensorReading::new(…);</code></label></label>
+      <label class="option"><input type="radio" name="q8" value="d"> <label>N'importe laquelle — <code>&amp;mut self</code> dans la méthode suffit.</label></label>
+      <button class="check-btn" onclick="check('q8','b','✅ Correct ! Pour obtenir un <code>&amp;mut</code> sur une variable, la variable elle-même doit être déclarée <code>mut</code>. Une méthode <code>&amp;mut self</code> ne peut pas contourner cette règle.','❌ Non. Pour emprunter mutuellement, la binding doit être <code>mut</code>. <code>let r = …</code> sans <code>mut</code> donne une valeur immutable — impossible d\'en tirer un <code>&amp;mut</code>.')">Vérifier</button>
+      <div class="feedback" id="q8-fb"></div>
+    </div>
+
+    <!-- Q9 -->
+    <div class="question" id="q9">
+      <p>9. Qu'est-ce qu'un <em>unit-like struct</em> ?</p>
+      <label class="option"><input type="radio" name="q9" value="a"> <label>Un struct dont tous les champs sont de type <code>u8</code>.</label></label>
+      <label class="option"><input type="radio" name="q9" value="b"> <label>Un struct sans aucun champ — il ne prend aucun espace et sert surtout à implémenter des traits.</label></label>
+      <label class="option"><input type="radio" name="q9" value="c"> <label>Un struct qui ne peut avoir qu'une seule instance (singleton).</label></label>
+      <label class="option"><input type="radio" name="q9" value="d"> <label>Un alias de <code>()</code>.</label></label>
+      <button class="check-btn" onclick="check('q9','b','✅ Exact ! <code>struct Marker;</code> n\'a aucun champ, donc taille zéro. C\'est très utile pour le <em>type-state pattern</em> (encoder un état dans le type plutôt que dans une valeur) et pour implémenter des traits sans données.','❌ Non. Un unit-like struct n\'a simplement aucun champ. La taille est zéro. L\'usage typique : marqueurs de type et implémentation de traits.')">Vérifier</button>
+      <div class="feedback" id="q9-fb"></div>
+    </div>
+
+    <!-- Q10 -->
+    <div class="question" id="q10">
+      <p>10. Tu as deux structs <code>Point2D(f32, f32)</code> et <code>Color(f32, f32, f32)</code>. Peut-on passer un <code>Point2D</code> là où un <code>Color</code> est attendu ?</p>
+      <label class="option"><input type="radio" name="q10" value="a"> <label>Oui, car ils ont la même représentation mémoire.</label></label>
+      <label class="option"><input type="radio" name="q10" value="b"> <label>Oui, avec un cast explicite.</label></label>
+      <label class="option"><input type="radio" name="q10" value="c"> <label>Non — ce sont deux types distincts même si la structure interne se ressemble.</label></label>
+      <label class="option"><input type="radio" name="q10" value="d"> <label>Oui, si les deux dérivent <code>Debug</code>.</label></label>
+      <button class="check-btn" onclick="check('q10','c','✅ Exact ! C\'est précisément l\'intérêt des tuple structs : créer des <em>newtype wrappers</em> qui sont distincts au niveau du système de types. <code>Point2D</code> et <code>Color</code> ont beau avoir la même structure mémoire, le compilateur les traite comme des types différents — c\'est une garantie de sécurité.','❌ Non. Le système de types de Rust est <em>nominal</em>, pas structurel. Même si deux tuple structs ont les mêmes champs, ils sont des types distincts. C\'est la force du <em>newtype pattern</em>.')">Vérifier</button>
+      <div class="feedback" id="q10-fb"></div>
+    </div>
+
+    <div class="score-bar" id="score-bar"></div>
+  </div>
+
+  <p style="margin-top:3rem;color:var(--muted);font-size:.85rem">
+    Ch.5 · Brown Book ·
+    <a href="https://rust-book.cs.brown.edu/ch05-01-defining-structs.html">5.1</a> ·
+    <a href="https://rust-book.cs.brown.edu/ch05-02-example-structs.html">5.2</a> ·
+    <a href="https://rust-book.cs.brown.edu/ch05-03-method-syntax.html">5.3</a>
+  </p>
+
+</div>
+
+<script>
+  const answers = {};
+  let total = 0;
+
+  function check(qid, correct, okHtml, failHtml) {
+    const sel = document.querySelector(`input[name="${qid}"]:checked`);
+    const fb  = document.getElementById(`${qid}-fb`);
+    if (!sel) { fb.className = 'feedback wrong'; fb.innerHTML = '⚠️ Sélectionne une réponse.'; return; }
+
+    if (!answers[qid]) {
+      answers[qid] = sel.value === correct;
+      total = Object.values(answers).filter(Boolean).length;
+    }
+
+    fb.className = sel.value === correct ? 'feedback correct' : 'feedback wrong';
+    fb.innerHTML = sel.value === correct ? okHtml : failHtml;
+
+    const allDone = Object.keys(answers).length === 10;
+    if (allDone) showScore();
+  }
+
+  function showScore() {
+    const bar = document.getElementById('score-bar');
+    const pct = Math.round(total / 10 * 100);
+    const color = pct >= 80 ? 'var(--green)' : pct >= 60 ? 'var(--yellow)' : 'var(--accent)';
+    const msg   = pct === 100 ? '🏆 Parfait !'
+                : pct >= 80  ? '✅ Solide — passe à l\'exercice !'
+                : pct >= 60  ? '⚠️ Quelques lacunes — relis les sections ratées.'
+                :              '❌ Reprends le chapitre avant l\'exercice.';
+    bar.innerHTML = `<span style="color:${color}">${total}/10 (${pct}%) — ${msg}</span>`;
+    bar.classList.add('show');
+    bar.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
+</script>
+</body>
+</html>
