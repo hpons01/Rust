@@ -1,0 +1,585 @@
+<!DOCTYPE html>
+<html lang="fr">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Ch.4 — Ownership, Références & Slices</title>
+  <style>
+    :root {
+      --bg:       #0f1117;
+      --surface:  #1a1d27;
+      --border:   #2a2d3e;
+      --accent:   #f97316;
+      --blue:     #60a5fa;
+      --green:    #4ade80;
+      --red:      #f87171;
+      --yellow:   #fbbf24;
+      --purple:   #c084fc;
+      --text:     #e2e8f0;
+      --muted:    #64748b;
+      --mono:     "Fira Code", "Cascadia Code", "Consolas", monospace;
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body {
+      background: var(--bg);
+      color: var(--text);
+      font-family: "Inter", "Segoe UI", sans-serif;
+      font-size: 16px;
+      line-height: 1.7;
+      max-width: 900px;
+      margin: 0 auto;
+      padding: 2.5rem 1.5rem 5rem;
+    }
+    h1 { font-size: 2rem; color: var(--accent); margin-bottom: 0.25rem; }
+    .subtitle { color: var(--muted); font-size: 0.95rem; margin-bottom: 2.5rem; }
+    h2 {
+      font-size: 1.25rem;
+      color: var(--blue);
+      border-left: 3px solid var(--blue);
+      padding-left: 0.75rem;
+      margin: 2.5rem 0 1rem;
+    }
+    h3 { font-size: 1rem; color: var(--yellow); margin: 1.5rem 0 0.5rem; }
+    p { margin-bottom: 0.9rem; }
+    code {
+      font-family: var(--mono);
+      background: #252836;
+      padding: 0.15em 0.4em;
+      border-radius: 4px;
+      font-size: 0.88em;
+      color: var(--green);
+    }
+    pre {
+      background: #161921;
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.2rem;
+      overflow-x: auto;
+      margin: 0.75rem 0 1.25rem;
+      font-family: var(--mono);
+      font-size: 0.87em;
+      line-height: 1.6;
+    }
+    pre .kw  { color: #c084fc; }   /* keyword */
+    pre .ty  { color: #60a5fa; }   /* type */
+    pre .st  { color: #4ade80; }   /* string/lifetime */
+    pre .cm  { color: #475569; font-style: italic; } /* comment */
+    pre .ok  { color: #4ade80; }
+    pre .err { color: #f87171; }
+    pre .num { color: #fbbf24; }
+    pre .fn  { color: #f97316; }
+
+    /* ── Diagrams ─────────────────────────────────────────── */
+    .diagram {
+      background: #161921;
+      border: 1px solid var(--border);
+      border-radius: 10px;
+      padding: 1.25rem 1.5rem;
+      margin: 0.75rem 0 1.5rem;
+      overflow-x: auto;
+    }
+    .diagram pre {
+      background: none;
+      border: none;
+      padding: 0;
+      margin: 0;
+      font-size: 0.82em;
+      color: var(--text);
+    }
+
+    /* ── Cards ────────────────────────────────────────────── */
+    .cards {
+      display: grid;
+      grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+      gap: 1rem;
+      margin: 0.75rem 0 1.5rem;
+    }
+    .card {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1rem;
+    }
+    .card .label {
+      font-size: 0.72rem;
+      text-transform: uppercase;
+      letter-spacing: 0.1em;
+      color: var(--muted);
+      margin-bottom: 0.4rem;
+    }
+    .card .value {
+      font-size: 1.05rem;
+      font-weight: 600;
+    }
+    .card.ok  .value { color: var(--green);  }
+    .card.err .value { color: var(--red);    }
+    .card.warn .value { color: var(--yellow);}
+
+    /* ── Rule boxes ───────────────────────────────────────── */
+    .rule {
+      border-left: 4px solid var(--accent);
+      background: #1e1a15;
+      border-radius: 0 8px 8px 0;
+      padding: 0.9rem 1.1rem;
+      margin: 0.75rem 0 1.25rem;
+      font-size: 0.95rem;
+    }
+    .rule.blue  { border-color: var(--blue);   background: #141b27; }
+    .rule.green { border-color: var(--green);  background: #142215; }
+    .rule.red   { border-color: var(--red);    background: #211516; }
+
+    /* ── Quiz ─────────────────────────────────────────────── */
+    .quiz { margin: 2rem 0 1rem; }
+    .question {
+      background: var(--surface);
+      border: 1px solid var(--border);
+      border-radius: 8px;
+      padding: 1.1rem 1.25rem;
+      margin-bottom: 1rem;
+    }
+    .question p { margin-bottom: 0.6rem; font-weight: 500; }
+    .options label {
+      display: block;
+      padding: 0.4rem 0.6rem;
+      margin: 0.2rem 0;
+      border-radius: 5px;
+      cursor: pointer;
+      transition: background 0.15s;
+    }
+    .options label:hover { background: #252836; }
+    .options input[type=radio] { margin-right: 0.5rem; }
+    .feedback {
+      display: none;
+      margin-top: 0.7rem;
+      padding: 0.5rem 0.8rem;
+      border-radius: 5px;
+      font-size: 0.9rem;
+    }
+    .feedback.correct { background: #142215; color: var(--green); display: block; }
+    .feedback.wrong   { background: #211516; color: var(--red);   display: block; }
+    .btn {
+      background: var(--accent);
+      color: #000;
+      border: none;
+      border-radius: 6px;
+      padding: 0.5rem 1.2rem;
+      font-weight: 700;
+      font-size: 0.9rem;
+      cursor: pointer;
+      margin-top: 0.5rem;
+    }
+    .btn:hover { opacity: 0.85; }
+
+    /* ── Permission table ────────────────────────────────── */
+    table {
+      width: 100%;
+      border-collapse: collapse;
+      margin: 0.75rem 0 1.5rem;
+      font-size: 0.9rem;
+    }
+    th {
+      background: #252836;
+      padding: 0.6rem 0.9rem;
+      text-align: left;
+      color: var(--muted);
+      font-weight: 600;
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.07em;
+    }
+    td { padding: 0.55rem 0.9rem; border-bottom: 1px solid var(--border); }
+    tr:last-child td { border-bottom: none; }
+    .tag {
+      display: inline-block;
+      padding: 0.15em 0.5em;
+      border-radius: 4px;
+      font-size: 0.8em;
+      font-weight: 600;
+    }
+    .tag.r  { background: #1a3050; color: var(--blue);  }
+    .tag.w  { background: #2a1f00; color: var(--yellow);}
+    .tag.o  { background: #1a2e1a; color: var(--green); }
+    .tag.no { background: #2e1a1a; color: var(--red);   }
+
+    hr { border: none; border-top: 1px solid var(--border); margin: 2rem 0; }
+    .tip {
+      background: #141b27;
+      border: 1px solid #1e3a5f;
+      border-radius: 8px;
+      padding: 0.9rem 1.1rem;
+      font-size: 0.9rem;
+      color: #93c5fd;
+      margin: 0.75rem 0 1.25rem;
+    }
+    a { color: var(--blue); text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .footer { margin-top: 3rem; color: var(--muted); font-size: 0.85rem; text-align: center; }
+  </style>
+</head>
+<body>
+
+<h1>Ch.4 — Ownership, Références &amp; Slices</h1>
+<p class="subtitle">Bloc 2 · Leçon de synthèse · 2026-06-14</p>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2>1 — Le modèle mémoire : Stack vs Heap</h2>
+
+<p>Avant les règles d'ownership, il faut avoir en tête où les données vivent. Tu connais déjà la distinction depuis C — Rust l'exploite explicitement dans ses règles.</p>
+
+<div class="diagram">
+<pre>
+  STACK                          HEAP
+  ┌─────────────────────┐        ┌─────────────────────────────┐
+  │  frame main()       │        │                             │
+  │  ┌───────────────┐  │  ptr ──►  H  e  l  l  o  !         │
+  │  │ s             │  │        │                             │
+  │  │  ptr  ──────────────────► └─────────────────────────────┘
+  │  │  len = 6      │  │
+  │  │  cap = 6      │  │
+  │  └───────────────┘  │
+  │                     │
+  │  x: i32 = 42        │        ← vit entièrement sur la stack
+  └─────────────────────┘
+</pre>
+</div>
+
+<div class="cards">
+  <div class="card">
+    <div class="label">Stack</div>
+    <div class="value ok">taille connue à compile-time</div>
+  </div>
+  <div class="card">
+    <div class="label">Heap</div>
+    <div class="value warn">alloué à runtime, taille variable</div>
+  </div>
+  <div class="card">
+    <div class="label">String (vs &amp;str)</div>
+    <div class="value warn">pointeur stack → données heap</div>
+  </div>
+</div>
+
+<p>Le <strong>pointeur fat</strong> d'un <code>String</code> est un triple <code>(ptr, len, cap)</code> sur la stack. Les <em>octets</em> eux sont sur le heap — c'est pour ça que <code>String</code> a des règles d'ownership et que <code>i32</code> n'en a pas besoin.</p>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2>2 — Les trois règles d'Ownership</h2>
+
+<div class="rule">
+  <strong>Règle 1.</strong> Chaque valeur a un seul <strong>owner</strong>.<br/>
+  <strong>Règle 2.</strong> Il ne peut y avoir qu'un seul owner à la fois.<br/>
+  <strong>Règle 3.</strong> Quand l'owner sort de scope, la valeur est <strong>droppée</strong> (libérée).
+</div>
+
+<p>Pas de <code>free()</code> explicite. Pas de GC. Le compilateur insère le drop automatiquement — et garantit qu'il n'y a qu'un seul drop. Fin du double-free en C.</p>
+
+<h3>Move vs Copy</h3>
+
+<div class="diagram">
+<pre>
+  ┌── MOVE (types heap : String, Vec…) ───────────────────────────────┐
+  │                                                                     │
+  │   let s1 = String::from("hello");                                  │
+  │   let s2 = s1;   ←── ownership TRANSFÉRÉ à s2                     │
+  │                                                                     │
+  │   AVANT       s1 ──► [ptr|len|cap]  →  heap: "hello"              │
+  │   APRÈS       s1  ✗ (invalidé)                                     │
+  │               s2 ──► [ptr|len|cap]  →  heap: "hello"              │
+  │                                                                     │
+  │   Bénéfice : pas de double-free, pas de copie heap silencieuse     │
+  └─────────────────────────────────────────────────────────────────────┘
+
+  ┌── COPY (types stack : i32, bool, f64, char, tuples…) ─────────────┐
+  │                                                                     │
+  │   let x: i32 = 42;                                                  │
+  │   let y = x;   ←── COPIE bitwise sur la stack, x reste valide      │
+  │                                                                     │
+  │   AVANT/APRÈS  x = 42    y = 42   (indépendants)                   │
+  │                                                                     │
+  │   Possible car taille fixe + pas d'indirection heap                 │
+  └─────────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<div class="tip">
+  <strong>Règle de décision rapide :</strong> si le type implémente le trait <code>Copy</code>, l'assignation copie. Sinon, elle move. Corollaire : un type avec un <code>Drop</code> custom ne peut pas implémenter <code>Copy</code>.
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2>3 — Références &amp; Borrowing</h2>
+
+<p>Donner l'ownership pour lire une valeur, puis la récupérer, c'est lourd. Les <strong>références</strong> permettent d'<em>emprunter</em> une valeur sans en prendre l'ownership.</p>
+
+<div class="diagram">
+<pre>
+  let s = String::from("hello");
+  let r = &amp;s;              ←── référence immuable
+
+  Mémoire :
+  ┌──────────┐        ┌────────────────────┐       ┌──────────────┐
+  │  r       │  ptr   │  s                 │  ptr  │  heap        │
+  │  ────────────────►│  ptr ─────────────────────►│  "hello"     │
+  └──────────┘        │  len = 5           │       └──────────────┘
+                      │  cap = 5           │
+                      └────────────────────┘
+
+  r emprunte s — s reste owner, r n'a pas le droit de dropper.
+</pre>
+</div>
+
+<h3>Les deux règles du Borrow Checker</h3>
+
+<div class="rule blue">
+  À tout moment, tu peux avoir <strong>soit</strong> :<br/>
+  &nbsp;&nbsp;• N références immuables (<code>&amp;T</code>), <em>ou</em><br/>
+  &nbsp;&nbsp;• <strong>1</strong> référence mutable (<code>&amp;mut T</code>) — pas les deux en même temps.
+</div>
+
+<div class="diagram">
+<pre>
+  READERS (immuables)          WRITER (mutable)
+  ┌────────────────────────┐   ┌────────────────────────┐
+  │  &amp;s   │  &amp;s   │  &amp;s  │   │       &amp;mut s            │
+  │  r1      r2      r3   │   │  (accès exclusif)       │
+  │   OK — lecture partagée│   │  Aucun autre borrow    │
+  └────────────────────────┘   └────────────────────────┘
+       MAIS pas de &amp;mut s            MAIS pas de &amp;s
+
+  Analogie registre embarqué : plusieurs ISR peuvent lire un registre
+  en même temps, mais une seule peut écrire (sinon race condition).
+</pre>
+</div>
+
+<h3>NLL — Non-Lexical Lifetimes</h3>
+
+<p>Depuis Rust 2018, le borrow checker comprend que la durée de vie d'un borrow se termine à la <strong>dernière utilisation</strong>, pas à la fermeture de l'accolade.</p>
+
+<pre><span class="kw">let mut</span> v = <span class="fn">vec!</span>[<span class="num">1</span>, <span class="num">2</span>, <span class="num">3</span>];
+<span class="kw">let</span> r = &amp;v[<span class="num">0</span>];          <span class="cm">// borrow immuable commence ici</span>
+<span class="fn">println!</span>(<span class="st">"{}"</span>, r);     <span class="cm">// &lt;── DERNIÈRE utilisation de r : borrow se termine ici</span>
+v.<span class="fn">push</span>(<span class="num">4</span>);             <span class="ok">// OK — plus aucun borrow actif</span></pre>
+
+<h3>Référence pendante = erreur à compile-time</h3>
+
+<pre><span class="kw">fn</span> <span class="fn">dangle</span>() -&gt; &amp;<span class="ty">String</span> { <span class="cm">// ← le compilateur refuse</span>
+    <span class="kw">let</span> s = <span class="ty">String</span>::<span class="fn">from</span>(<span class="st">"hello"</span>);
+    &amp;s                         <span class="cm">// s est droppé à la fin, &amp;s serait une dangling ref</span>
+}                              <span class="err">// erreur : `s` does not live long enough</span></pre>
+
+<p>En C, c'est un UB silencieux. En Rust, c'est une erreur de compilation. L'invariant : <em>une référence ne peut pas vivre plus longtemps que la valeur qu'elle emprunte.</em></p>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2>4 — Le modèle de permissions (Brown Book)</h2>
+
+<p>Le Brown Book formalise les droits du borrow checker avec trois permissions :</p>
+
+<table>
+  <thead>
+    <tr>
+      <th>Permission</th><th>Signifie</th><th>Qui l'a</th>
+    </tr>
+  </thead>
+  <tbody>
+    <tr>
+      <td><span class="tag r">R</span> Read</td>
+      <td>Lire la valeur</td>
+      <td>Owner, <code>&amp;T</code>, <code>&amp;mut T</code></td>
+    </tr>
+    <tr>
+      <td><span class="tag w">W</span> Write</td>
+      <td>Modifier la valeur</td>
+      <td>Owner <code>mut</code>, <code>&amp;mut T</code></td>
+    </tr>
+    <tr>
+      <td><span class="tag o">O</span> Own</td>
+      <td>Dropper ou move</td>
+      <td>Owner uniquement</td>
+    </tr>
+  </tbody>
+</table>
+
+<div class="diagram">
+<pre>
+  let mut s = String::from("hi");   // s : R W O
+  let r1 = &amp;s;                      // s : R . .  (W et O suspendus)
+                                    // r1: R . .
+  let r2 = &amp;mut s;                  // s : . . .  (tout suspendu)
+                                    // r2: R W .
+  // r2 doit disparaître avant qu'on puisse reborrow s immuablement
+</pre>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2>5 — Slices : <code>&amp;[T]</code> et <code>&amp;str</code></h2>
+
+<p>Une <strong>slice</strong> est une référence à une sous-séquence contiguë d'une collection. Elle est un <em>fat pointer</em> : <code>(ptr, len)</code>.</p>
+
+<div class="diagram">
+<pre>
+  let s = String::from("hello world");
+  let hello = &amp;s[0..5];   ←── &amp;str : slice de String
+
+  Mémoire :
+  ┌──────────────┐        ┌───────────────────────────────┐
+  │  s           │  ptr   │  h  e  l  l  o     w  o  r  l  d  │
+  │  ptr ───────────────► │                               │
+  │  len=11      │        │  └─────────┘                  │
+  │  cap=11      │        └───────────────────────────────┘
+  └──────────────┘             ▲
+  ┌──────────────┐             │
+  │  hello       │   ptr ──────┘
+  │  ptr         │   len = 5
+  │  len = 5     │
+  └──────────────┘
+
+  hello est un &amp;str : pas de capacity, pas d'ownership.
+</pre>
+</div>
+
+<h3>Pourquoi <code>&amp;str</code> plutôt que <code>&amp;String</code> en paramètre ?</h3>
+
+<pre><span class="cm">// Moins flexible — accepte seulement &amp;String</span>
+<span class="kw">fn</span> <span class="fn">first_word</span>(s: &amp;<span class="ty">String</span>) -&gt; &amp;<span class="ty">str</span> { … }
+
+<span class="cm">// Idiomatic — accepte &amp;String ET &amp;str (string literals)</span>
+<span class="kw">fn</span> <span class="fn">first_word</span>(s: &amp;<span class="ty">str</span>) -&gt; &amp;<span class="ty">str</span> { … }</pre>
+
+<p>Un <code>&amp;String</code> se <em>coerce</em> automatiquement en <code>&amp;str</code>, donc accepter <code>&amp;str</code> est plus général. C'est le pattern idiomatique.</p>
+
+<h3>Slices sur Vec : <code>&amp;[T]</code></h3>
+
+<pre><span class="kw">let</span> v = <span class="fn">vec!</span>[<span class="num">1u8</span>, <span class="num">2</span>, <span class="num">3</span>, <span class="num">4</span>, <span class="num">5</span>];
+<span class="kw">let</span> mid: &amp;[<span class="ty">u8</span>] = &amp;v[<span class="num">1</span>..<span class="num">4</span>];   <span class="cm">// [2, 3, 4] — fat pointer (ptr, len=3)</span></pre>
+
+<p>En embarqué, les slices sont omniprésentes : buffers DMA, frames SPI/UART. Une fonction qui accepte <code>&amp;[u8]</code> fonctionne sur un tableau statique, un <code>Vec</code>, ou la moitié d'un buffer — même API.</p>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2>6 — Récapitulatif visuel global</h2>
+
+<div class="diagram">
+<pre>
+  ┌───────────────────────────────────────────────────────────────────┐
+  │                    CH.4 — CARTE MENTALE                           │
+  │                                                                   │
+  │          VALEUR                                                   │
+  │          (String, Vec, …)                                         │
+  │              │                                                    │
+  │       ┌──────┴──────┐                                            │
+  │       │ MOVE        │ COPY (i32, bool, …)                        │
+  │       │ ownership   │ copie bitwise                               │
+  │       │ transféré   │ les deux valides                            │
+  │       └──────┬──────┘                                            │
+  │              │ pour garder l'accès sans transférer                │
+  │              ▼                                                    │
+  │         RÉFÉRENCE                                                 │
+  │         ┌──────────────────────────────┐                         │
+  │         │  &amp;T            │  &amp;mut T     │                         │
+  │         │  N simultanées │  1 seule    │                         │
+  │         │  R seulement   │  R + W      │                         │
+  │         └──────────────────────────────┘                         │
+  │              │ référence à une sous-séquence                      │
+  │              ▼                                                    │
+  │           SLICE                                                   │
+  │         &amp;str  (→ String ou littéral)                             │
+  │         &amp;[T]  (→ Vec ou tableau)                                 │
+  │         fat pointer = (ptr, len)                                  │
+  └───────────────────────────────────────────────────────────────────┘
+</pre>
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<h2>7 — Quiz</h2>
+
+<div class="quiz" id="quiz">
+
+  <div class="question" id="q1">
+    <p>Q1. Pourquoi <code>let s2 = s1;</code> invalide <code>s1</code> quand <code>s1: String</code>, mais pas quand <code>s1: i32</code> ?</p>
+    <div class="options">
+      <label><input type="radio" name="q1" value="a" /> (a) <code>String</code> est plus grand qu'un registre.</label>
+      <label><input type="radio" name="q1" value="b" /> (b) <code>String</code> ne satisfait pas <code>Copy</code> car il a un <code>Drop</code> (heap), donc l'assignation est un move.</label>
+      <label><input type="radio" name="q1" value="c" /> (c) Rust copie toujours <code>i32</code> mais jamais <code>String</code> pour des raisons de performance.</label>
+    </div>
+    <button class="btn" onclick="check('q1','b','Un type qui implémente Drop ne peut pas implémenter Copy — ils sont mutuellement exclusifs. i32 n\'a pas de ressource heap, donc Copy est trivial et sûr.')">Vérifier</button>
+    <div class="feedback" id="q1-feedback"></div>
+  </div>
+
+  <div class="question" id="q2">
+    <p>Q2. Ce code compile-t-il ? Si non, pourquoi ?</p>
+    <pre><span class="kw">let mut</span> s = <span class="ty">String</span>::<span class="fn">from</span>(<span class="st">"hi"</span>);
+<span class="kw">let</span> r1 = &amp;s;
+<span class="kw">let</span> r2 = &amp;<span class="kw">mut</span> s;
+<span class="fn">println!</span>(<span class="st">"{} {}"</span>, r1, r2);</pre>
+    <div class="options">
+      <label><input type="radio" name="q2" value="a" /> (a) Oui, <code>r1</code> et <code>r2</code> pointent sur le même <code>String</code> donc pas de problème.</label>
+      <label><input type="radio" name="q2" value="b" /> (b) Non — <code>r1</code> est un borrow immuable encore actif au moment où <code>r2</code> crée un borrow mutable.</label>
+      <label><input type="radio" name="q2" value="c" /> (c) Oui, NLL résout le conflit car <code>r1</code> est déclaré avant.</label>
+    </div>
+    <button class="btn" onclick="check('q2','b','NLL réduit la portée des borrows à leur dernière utilisation, mais ici r1 est encore utilisé dans le println après que r2 a été créé — le conflit &amp;T / &amp;mut T persiste.')">Vérifier</button>
+    <div class="feedback" id="q2-feedback"></div>
+  </div>
+
+  <div class="question" id="q3">
+    <p>Q3. Quelle est la différence entre <code>&amp;str</code> et <code>&amp;String</code> comme paramètre de fonction ?</p>
+    <div class="options">
+      <label><input type="radio" name="q3" value="a" /> (a) <code>&amp;String</code> est plus performant car il évite une déréférence.</label>
+      <label><input type="radio" name="q3" value="b" /> (b) Il n'y a pas de différence, Rust les traite pareil.</label>
+      <label><input type="radio" name="q3" value="c" /> (c) <code>&amp;str</code> est plus général : il accepte <code>&amp;String</code> (par coercion) ET les string literals.</label>
+    </div>
+    <button class="btn" onclick="check('q3','c','&amp;String se coerce en &amp;str (deref coercion), donc une fonction prenant &amp;str fonctionne avec les deux. L\'inverse n\'est pas vrai. Préférer &amp;str est idiomatique.')">Vérifier</button>
+    <div class="feedback" id="q3-feedback"></div>
+  </div>
+
+  <div class="question" id="q4">
+    <p>Q4. Pourquoi une slice <code>&amp;[u8]</code> est-elle utile en embarqué ?</p>
+    <div class="options">
+      <label><input type="radio" name="q4" value="a" /> (a) Elle alloue une copie sur le heap pour éviter de modifier le buffer original.</label>
+      <label><input type="radio" name="q4" value="b" /> (b) Elle est un fat pointer (ptr, len) qui référence n'importe quel buffer contigu — tableau statique, Vec, ou portion de buffer DMA — sans copie ni allocation.</label>
+      <label><input type="radio" name="q4" value="c" /> (c) Elle est obligatoire pour utiliser les registres DMA.</label>
+    </div>
+    <button class="btn" onclick="check('q4','b','En no_std embedded, on ne veut surtout pas d\'allocation. &amp;[u8] donne accès à n\'importe quelle mémoire contiguë via une API uniforme — parfait pour les buffers SPI/UART/DMA.')">Vérifier</button>
+    <div class="feedback" id="q4-feedback"></div>
+  </div>
+
+</div>
+
+<!-- ══════════════════════════════════════════════════════ -->
+<hr />
+<h2>Ce que tu maîtrises maintenant</h2>
+<div class="cards">
+  <div class="card ok"><div class="label">Ownership</div><div class="value">Move / Copy / Drop</div></div>
+  <div class="card ok"><div class="label">Références</div><div class="value">&amp;T, &amp;mut T, règles borrow</div></div>
+  <div class="card ok"><div class="label">NLL</div><div class="value">Portée = dernière utilisation</div></div>
+  <div class="card ok"><div class="label">Slices</div><div class="value">&amp;str, &amp;[T], fat pointer</div></div>
+</div>
+
+<h2>Prochain territoire — Bloc 3</h2>
+<p>
+  Ch.5 — Structs (données nommées, méthodes, <code>impl</code>) · Ch.6 — Enums + pattern matching.
+  Tu commenceras à écrire des types qui <em>ressemblent</em> à des pilotes embarqués. L'ownership que tu viens d'apprendre servira dès la première struct avec des champs <code>String</code> ou <code>Vec</code>.
+</p>
+<p>
+  Références : <a href="https://rust-book.cs.brown.edu/ch04-00-understanding-ownership.html" target="_blank">Brown Book Ch.4</a> ·
+  <a href="https://doc.rust-lang.org/std/primitive.slice.html" target="_blank">std::slice</a>
+</p>
+
+<div class="tip">
+  Des questions sur un concept de cette leçon ? Tape ta question directement dans Claude Code — je suis ton prof et je peux approfondir n'importe quel point.
+</div>
+
+<p class="footer">Leçon 0002 · Rust Learning Repo · Bloc 2 complet</p>
+
+<script>
+  function check(qid, correct, explanation) {
+    const selected = document.querySelector(`input[name="${qid}"]:checked`);
+    const fb = document.getElementById(`${qid}-feedback`);
+    if (!selected) { fb.className = 'feedback wrong'; fb.textContent = 'Sélectionne une réponse.'; return; }
+    if (selected.value === correct) {
+      fb.className = 'feedback correct';
+      fb.textContent = '✓ Correct — ' + explanation;
+    } else {
+      fb.className = 'feedback wrong';
+      fb.textContent = '✗ Pas tout à fait. ' + explanation;
+    }
+  }
+</script>
+
+</body>
+</html>
